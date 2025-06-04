@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Surveillance System Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    nav {
+      background-color: #1a73e8;
+      color: white;
+      padding: 15px;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .logout-btn {
+      background-color: #d32f2f;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .logout-btn:hover {
+      background-color: #b71c1c;
+    }
+    .section {
+      background-color: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .section h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+    .device-item, .video-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .device-item:last-child, .video-item:last-child {
+      border-bottom: none;
+    }
+    .status-online { color: #2e7d32; }
+    .status-offline { color: #d32f2f; }
+    .btn {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .btn:hover {
+      background-color: #1565c0;
+    }
+    .video-player, .live-feed {
+      margin-bottom: 20px;
+    }
+    .video-player video, .live-feed video {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 4px;
+    }
+    .video-controls {
+      display: flex;
+      gap: 10px;
+    }
+    .video-controls button {
+      background-color: #616161;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .video-controls button:hover {
+      background-color: #424242;
+    }
+    .close-btn {
+      background-color: #d32f2f;
+    }
+    .close-btn:hover {
+      background-color: #b71c1c;
+    }
+    .device-form {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .device-form input {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .live-feed-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+      nav h1 {
+        font-size: 20px;
+      }
+      .section {
+        padding: 15px;
+      }
+      .live-feed video {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <h1>Surveillance System</h1>
+      <div>
+        <span>Welcome, John Doe</span>
+        <button class="logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    <div class="section">
+      <h2>Subscription Status</h2>
+      <p>Plan: <strong>Basic</strong></p>
+      <p>Expires: <strong>2025-12-31</strong></p>
+      <button class="btn">Upgrade Plan</button>
+    </div>
+    <div class="section">
+      <h2>Connected Devices</h2>
+      <div id="device-list">
+        <!-- Dynamically populated -->
+      </div>
+      <div class="device-form">
+        <input type="text" id="device-name" placeholder="Device Name (e.g., Front Door Cam)">
+        <button class="btn" onclick="addDevice()">Add Device</button>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Live Feeds</h2>
+      <div id="live-feed-container" class="live-feed-container">
+        <!-- Dynamically populated live feeds -->
+      </div>
+    </div>
+    <div class="section">
+      <h2>Recorded Videos</h2>
+      <div id="video-player" style="display: none;">
+        <video id="video" controls>
+          <source id="video-source" src="" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <div class="video-controls">
+          <button onclick="togglePlay()">Pause</button>
+          <button onclick="setPlaybackRate(2)">Fast Forward</button>
+          <button onclick="setPlaybackRate(0.5)">Slow Motion</button>
+          <button class="close-btn" onclick="closeVideo()">Close</button>
+        </div>
+      </div>
+      <div id="video-list">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+  </div>
+  <script>
+    // Device and video data (in-memory for simplicity)
+    let devices = [
+      { id: 1, name: "Front Door Cam", status: "Offline", stream: null },
+      { id: 2, name: "Backyard Cam", status: "Offline", stream: null },
+    ];
+    let videos = [];
+
+    // DOM elements
+    const deviceList = document.getElementById('device-list');
+    const liveFeedContainer = document.getElementById('live-feed-container');
+    const videoPlayer = document.getElementById('video-player');
+    const video = document.getElementById('video');
+    const videoSource = document.getElementById('video-source');
+    const videoList = document.getElementById('video-list');
+
+    // Render devices
+    function renderDevices() {
+      deviceList.innerHTML = devices.map(device => `
+        <div class="device-item">
+          <div>
+            <p><strong>${device.name}</strong></p>
+            <p>Type: Camera</p>
+          </div>
+          <div>
+            <span class="status-${device.status.toLowerCase()}">${device.status}</span>
+            ${device.status === 'Online' ? `<button class="btn" onclick="startRecording(${device.id})">Record</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render live feeds
+    function renderLiveFeeds() {
+      liveFeedContainer.innerHTML = devices
+        .filter(device => device.status === 'Online' && device.stream)
+        .map(device => `
+          <div class="live-feed">
+            <p><strong>${device.name} (Live)</strong></p>
+            <video id="video-${device.id}" autoplay muted></video>
+          </div>
+        `).join('');
+      devices.forEach(device => {
+        if (device.status === 'Online' && device.stream) {
+          const videoElement = document.getElementById(`video-${device.id}`);
+          if (videoElement) videoElement.srcObject = device.stream;
+        }
+      });
+    }
+
+    // Render videos
+    function renderVideos() {
+      videoList.innerHTML = videos.map(video => `
+        <div class="video-item">
+          <div>
+            <p><strong>${video.device}</strong></p>
+            <p>Date: ${video.date}</p>
+            <p>Duration: ${video.duration}</p>
+          </div>
+          <button class="btn" onclick="playVideo('${video.file}')">Play</button>
+        </div>
+      `).join('');
+    }
+
+    // Add new device
+    async function addDevice() {
+      const deviceName = document.getElementById('device-name').value.trim();
+      if (!deviceName) {
+        alert('Please enter a device name.');
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Your browser does not support camera access. Please use a modern browser like Chrome, Firefox, or Edge.');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const newDevice = {
+          id: devices.length + 1,
+          name: deviceName,
+          status: 'Online',
+          stream: stream,
+        };
+        devices.push(newDevice);
+        renderDevices();
+        renderLiveFeeds();
+        document.getElementById('device-name').value = '';
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        let errorMessage = 'Failed to access camera. ';
+        if (error.name === 'NotAllowedError') {
+          errorMessage += 'Camera access was denied. Please allow camera access in your browser settings.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += 'No camera was found on this device.';
+        } else if (error.name === 'NotReadableError') {
+          errorMessage += 'The camera is in use by another application.';
+        } else {
+          errorMessage += 'An unexpected error occurred. Check the console for details.';
+        }
+        alert(errorMessage);
+      }
+    }
+
+    // Start recording
+    function startRecording(deviceId) {
+      const device = devices.find(d => d.id === deviceId);
+      if (!device || !device.stream) return;
+
+      if (!window.MediaRecorder) {
+        alert('Your browser does not support video recording. Please use a modern browser like Chrome or Firefox.');
+        return;
+      }
+
+      const mediaRecorder = new MediaRecorder(device.stream);
+      const chunks = [];
+      mediaRecorder.ondataavailable = event => chunks.push(event.data);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const duration = '10:00'; // Placeholder; calculate actual duration in production
+        videos.push({
+          id: videos.length + 1,
+          device: device.name,
+          date: new Date().toLocaleString(),
+          duration: duration,
+          file: url,
+        });
+        renderVideos();
+      };
+      mediaRecorder.start();
+      setTimeout(() => mediaRecorder.stop(), 10000); // Record for 10 seconds (demo)
+    }
+
+    // Video player controls
+    function playVideo(file) {
+      videoSource.src = file;
+      video.load();
+      videoPlayer.style.display = 'block';
+      videoList.style.display = 'none';
+      video.play();
+    }
+
+    function togglePlay() {
+      if (video.paused) {
+        video.play();
+        event.target.textContent = 'Pause';
+      } else {
+        video.pause();
+        event.target.textContent = 'Play';
+      }
+    }
+
+    function setPlaybackRate(rate) {
+      video.playbackRate = rate;
+    }
+
+    function closeVideo() {
+      video.pause();
+      videoPlayer.style.display = 'none';
+      videoList.style.display = 'block';
+      videoSource.src = '';
+    }
+
+    // Initial render
+    renderDevices();
+    renderVideos();
+  </script>
+</body>
+</html>
